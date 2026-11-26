@@ -1,0 +1,22 @@
+{
+  "reverseMouseScroll": true,
+  "reverseMouseHorizontalScroll": false,
+  "swipeFingers": 3,
+  "swipeThreshold": 0.05,
+  "axisDominance": 1.6,
+  "maxSwipeDuration": 0.75,
+  "apps": {
+    "com.google.Chrome": {
+      "left": { "key": "]", "modifiers": ["cmd", "shift"] },
+      "right": { "key": "[", "modifiers": ["cmd", "shift"] },
+      "up": { "key": "t", "modifiers": ["cmd"] },
+      "down": { "key": "w", "modifiers": ["cmd"] }
+    },
+    "com.apple.Safari": {
+      "left": { "key": "]", "modifiers": ["cmd", "shift"] },
+      "right": { "key": "[", "modifiers": ["cmd", "shift"] },
+      "up": { "key": "t", "modifiers": ["cmd"] },
+      "down": { "key": "w", "modifiers": ["cmd"] }
+    }
+  }
+}
