@@ -1,40 +1,82 @@
 # flickd
 
-极简、无 GUI、超低内存占用的 macOS 原生 Swift 守护进程，替代 BetterTouchTool 的两个核心日常功能：
+English | [简体中文](README.zh-CN.md)
 
-1. **触控板三指轻扫手势（按 App 生效）**：默认仅在 **Google Chrome** 与 **Safari** 下生效：
-   - 三指向右轻扫 → `⇧⌘[`（上一个标签页）
-   - 三指向左轻扫 → `⇧⌘]`（下一个标签页）
-   - 三指向上轻扫 → `⌘T`（新建标签页）
-   - 三指向下轻扫 → `⌘W`（关闭当前标签页）
-2. **外接普通鼠标独立反转滚轮**：仅对非连续滚轮（`scrollWheelEventIsContinuous == 0`）反转垂直滚动，不影响触控板与 Magic Mouse。
+An ultra-lightweight, headless native macOS Swift daemon (**~9 MB RAM**, `0.0%` idle CPU, zero GUI / zero menu bar icon) that replaces BetterTouchTool for two everyday input needs:
 
-## 配置文件
+1. **Per-app 3-finger trackpad swipes** (pre-configured for **Google Chrome** and **Safari**):
+   - 3-finger swipe right → `⇧⌘[` (Previous tab)
+   - 3-finger swipe left → `⇧⌘]` (Next tab)
+   - 3-finger swipe up → `⌘T` (New tab)
+   - 3-finger swipe down → `⌘W` (Close tab)
+2. **Independent external mouse scroll reversal**: Reverses vertical scrolling only for discrete scroll-wheel mice (`scrollWheelEventIsContinuous == 0`), leaving Apple Trackpad and Magic Mouse natural scrolling untouched.
 
-`~/.config/flickd/config.json`（修改后运行 `make reload` 或 `pkill -HUP flickd` 热加载，无需重启）：
+## Why `flickd`?
 
-- `reverseMouseScroll`: 是否反转外接鼠标垂直滚轮（默认 `true`）
-- `reverseMouseHorizontalScroll`: 是否反转外接鼠标水平滚轮（默认 `false`）
-- `swipeFingers`: 手势指数量（默认 `3`；超过该指数量如 4 指切桌面会自动锁定，绝不误触发）
-- `swipeThreshold`: 触发阈值，触控板归一化距离 `0.0 ~ 1.0`（默认 `0.05`，调小更灵敏、调大更防误触）
-- `axisDominance`: 主轴方向比（默认 `1.6`，防止斜向滑动误触）
-- `maxSwipeDuration`: 单次滑动最长耗时秒数（默认 `0.75`，防止手指搭在触控板上慢漂移误触）
-- `apps`: 按 `CFBundleIdentifier` 映射 `left` / `right` / `up` / `down` 快捷键
+- **Tiny footprint**: Single ~124 KB native Swift binary, **~9 MB** physical memory footprint (Activity Monitor `footprint`), no Electron, no scripting VM, no helper subprocesses.
+- **No accidental triggers**: Requires coherent multi-finger motion along the dominant axis within a time window; 4+ finger gestures (Mission Control / Spaces) lock out 3-finger detection until all fingers lift.
+- **Zero-allocation hot path**: Built directly on macOS `MultitouchSupport` + a single `CGEventTap` for scroll wheel events, with sleep/wake recovery and `SIGHUP` hot config reload.
 
-## 常用命令
+## Requirements
+
+- macOS on Apple Silicon or Intel with Xcode Command Line Tools (`swiftc`)
+- System Settings → **Trackpad → More Gestures**: set Mission Control / Swipe between full-screen apps to **4 fingers** (or off) so 3-finger swipes are free.
+
+## Install & Usage
 
 ```bash
 git clone https://github.com/AsIsacy/flickd.git && cd flickd
-make install    # 编译、打包无头 Flickd.app、签名并注册 LaunchAgent 开机自启
-make status     # 查看运行状态与内存占用
-make reload     # 热加载 ~/.config/flickd/config.json
-make restart    # 重启守护进程
-make logs       # 查看 ~/Library/Logs/flickd.log
-make uninstall  # 停止并移除 LaunchAgent 与 ~/Applications/Flickd.app
+make install    # Build, package headless ~/Applications/Flickd.app, codesign, and start LaunchAgent
+make status     # Check daemon status and memory usage
+make reload     # Hot-reload ~/.config/flickd/config.json (sends SIGHUP)
+make restart    # Restart the LaunchAgent
+make logs       # View ~/Library/Logs/flickd.log
+make uninstall  # Stop and remove LaunchAgent and ~/Applications/Flickd.app
 ```
 
-> 实测常驻物理内存仅 **~9 MB**（Activity Monitor 同口径 `footprint`），空闲 CPU `0.0%`，无 GUI / 无菜单栏图标。
+### Grant Accessibility Permission
 
-## 权限说明
+After `make install`, open **System Settings → Privacy & Security → Accessibility**, add `~/Applications/Flickd.app`, and enable it. `flickd` checks for permission every 3 seconds and activates automatically once granted—no restart required.
 
-首次安装后需在 **系统设置 → 隐私与安全性 → 辅助功能** 中勾选 `~/Applications/Flickd.app`（`flickd` 每 3 秒自动检测权限，勾选后立刻生效，无需重启）。
+## Configuration
+
+Edit `~/.config/flickd/config.json` and run `make reload` (or `pkill -HUP flickd`):
+
+```json
+{
+  "reverseMouseScroll": true,
+  "reverseMouseHorizontalScroll": false,
+  "swipeFingers": 3,
+  "swipeThreshold": 0.05,
+  "axisDominance": 1.6,
+  "maxSwipeDuration": 0.75,
+  "apps": {
+    "com.google.Chrome": {
+      "left":  { "key": "]", "modifiers": ["cmd", "shift"] },
+      "right": { "key": "[", "modifiers": ["cmd", "shift"] },
+      "up":    { "key": "t", "modifiers": ["cmd"] },
+      "down":  { "key": "w", "modifiers": ["cmd"] }
+    },
+    "com.apple.Safari": {
+      "left":  { "key": "]", "modifiers": ["cmd", "shift"] },
+      "right": { "key": "[", "modifiers": ["cmd", "shift"] },
+      "up":    { "key": "t", "modifiers": ["cmd"] },
+      "down":  { "key": "w", "modifiers": ["cmd"] }
+    }
+  }
+}
+```
+
+| Option | Default | Description |
+|---|---:|---|
+| `reverseMouseScroll` | `true` | Reverse vertical scrolling for non-continuous external mice |
+| `reverseMouseHorizontalScroll` | `false` | Reverse horizontal scrolling for external mice |
+| `swipeFingers` | `3` | Number of fingers for swipe gestures (`2`–`5`) |
+| `swipeThreshold` | `0.05` | Normalized trackpad distance (`0.0`–`1.0`); lower is more sensitive |
+| `axisDominance` | `1.6` | Minimum primary-to-secondary axis ratio to prevent diagonal misfires |
+| `maxSwipeDuration` | `0.75` | Max seconds from touch start to trigger; prevents slow drift misfires |
+| `apps` | Chrome & Safari | Map of macOS `CFBundleIdentifier` → `left` / `right` / `up` / `down` shortcuts |
+
+## License
+
+[MIT](LICENSE)
