@@ -24,6 +24,24 @@ An ultra-lightweight, headless native macOS Swift daemon (**~9 MB RAM**, `0.0%` 
 
 ## Install & Usage
 
+### Option 1: Prebuilt Universal Release (Apple Silicon & Intel)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AsIsacy/flickd/main/install.sh | bash
+```
+
+Or download `Flickd-v*-macos-universal.zip` from [GitHub Releases](https://github.com/AsIsacy/flickd/releases), unzip, and run `./install.sh`.
+
+> **Note:** Prebuilt releases are ad-hoc signed (no paid Apple Developer ID). `install.sh` automatically clears the macOS quarantine attribute (`xattr -dr com.apple.quarantine ~/Applications/Flickd.app`).
+
+To uninstall:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AsIsacy/flickd/main/install.sh | bash -s -- --uninstall
+```
+
+### Option 2: Build from Source
+
 ```bash
 git clone https://github.com/AsIsacy/flickd.git && cd flickd
 make install    # Build, package headless ~/Applications/Flickd.app, codesign, and start LaunchAgent

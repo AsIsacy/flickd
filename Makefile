@@ -6,17 +6,46 @@ PLIST_DST     := $(HOME)/Library/LaunchAgents/$(BUNDLE_ID).plist
 CONFIG_DST    := $(HOME)/.config/flickd/config.json
 LOG_FILE      := $(HOME)/Library/Logs/flickd.log
 BUILD_DIR     := build
+MIN_MACOS     := 13.0
+VERSION       ?= 0.1.0
 
-.PHONY: build install uninstall start stop restart reload status logs clean
+SWIFT_FLAGS   := -O -whole-module-optimization \
+                 -import-objc-header src/MultitouchSupport.h \
+                 -framework AppKit -framework CoreGraphics -framework ApplicationServices
+
+.PHONY: build build-universal package install uninstall restart reload status logs clean
 
 build:
 	@mkdir -p $(BUILD_DIR)
-	swiftc -O -whole-module-optimization \
-		-import-objc-header src/MultitouchSupport.h \
-		-framework AppKit -framework CoreGraphics -framework ApplicationServices \
-		src/main.swift -o $(BUILD_DIR)/$(BIN_NAME)
+	swiftc $(SWIFT_FLAGS) src/main.swift -o $(BUILD_DIR)/$(BIN_NAME)
 	@strip -x $(BUILD_DIR)/$(BIN_NAME)
 	@ls -lh $(BUILD_DIR)/$(BIN_NAME)
+
+build-universal:
+	@mkdir -p $(BUILD_DIR)
+	swiftc $(SWIFT_FLAGS) -target arm64-apple-macosx$(MIN_MACOS) src/main.swift -o $(BUILD_DIR)/$(BIN_NAME)-arm64
+	swiftc $(SWIFT_FLAGS) -target x86_64-apple-macosx$(MIN_MACOS) src/main.swift -o $(BUILD_DIR)/$(BIN_NAME)-x86_64
+	lipo -create -output $(BUILD_DIR)/$(BIN_NAME) $(BUILD_DIR)/$(BIN_NAME)-arm64 $(BUILD_DIR)/$(BIN_NAME)-x86_64
+	@strip -x $(BUILD_DIR)/$(BIN_NAME)
+	@rm -f $(BUILD_DIR)/$(BIN_NAME)-arm64 $(BUILD_DIR)/$(BIN_NAME)-x86_64
+	@lipo -info $(BUILD_DIR)/$(BIN_NAME)
+	@ls -lh $(BUILD_DIR)/$(BIN_NAME)
+
+STAGE_DIR     := $(BUILD_DIR)/$(APP_NAME)-v$(VERSION)
+
+package: build-universal
+	@rm -rf "$(STAGE_DIR)"
+	@mkdir -p "$(STAGE_DIR)/$(APP_NAME).app/Contents/MacOS"
+	@cp "$(BUILD_DIR)/$(BIN_NAME)" "$(STAGE_DIR)/$(APP_NAME).app/Contents/MacOS/$(BIN_NAME)"
+	@chmod +x "$(STAGE_DIR)/$(APP_NAME).app/Contents/MacOS/$(BIN_NAME)"
+	@sed -e "s|<string>0.1.0</string>|<string>$(VERSION)</string>|" Info.plist > "$(STAGE_DIR)/$(APP_NAME).app/Contents/Info.plist"
+	@codesign --force --sign - --identifier $(BUNDLE_ID) "$(STAGE_DIR)/$(APP_NAME).app"
+	@codesign --verify --deep --strict "$(STAGE_DIR)/$(APP_NAME).app"
+	@cp install.sh config.example.json README.md README.zh-CN.md LICENSE "$(STAGE_DIR)/"
+	@chmod +x "$(STAGE_DIR)/install.sh"
+	@ditto -c -k --norsrc --keepParent "$(STAGE_DIR)" "$(BUILD_DIR)/$(APP_NAME)-v$(VERSION)-macos-universal.zip"
+	@(cd "$(BUILD_DIR)" && shasum -a 256 "$(APP_NAME)-v$(VERSION)-macos-universal.zip" > SHA256SUMS.txt)
+	@ls -lh "$(BUILD_DIR)/$(APP_NAME)-v$(VERSION)-macos-universal.zip" "$(BUILD_DIR)/SHA256SUMS.txt"
 
 install: build
 	@mkdir -p "$(APP_DIR)/Contents/MacOS" "$(HOME)/.config/flickd" "$(HOME)/Library/LaunchAgents" "$(HOME)/Library/Logs"

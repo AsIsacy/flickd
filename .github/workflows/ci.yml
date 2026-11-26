@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build universal binary (arm64 + x86_64)
+        run: make build-universal
+
+      - name: Package & verify signature
+        run: make package VERSION=0.0.0-ci
+
+      - name: Sanity-check CLI help
+        run: ./build/Flickd-v0.0.0-ci/Flickd.app/Contents/MacOS/flickd --help

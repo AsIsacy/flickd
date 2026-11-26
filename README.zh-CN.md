@@ -24,6 +24,24 @@
 
 ## 安装与常用命令
 
+### 方式一：直接下载预编译通用版 Release（Apple Silicon & Intel 通用）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AsIsacy/flickd/main/install.sh | bash
+```
+
+也可以前往 [GitHub Releases](https://github.com/AsIsacy/flickd/releases) 手动下载 `Flickd-v*-macos-universal.zip`，解压后执行 `./install.sh`。
+
+> **说明**：预编译包采用开源 ad-hoc 签名（未做付费 Apple 公证），`install.sh` 会自动清理浏览器下载附加的隔离属性（`xattr -dr com.apple.quarantine ~/Applications/Flickd.app`）。
+
+卸载：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AsIsacy/flickd/main/install.sh | bash -s -- --uninstall
+```
+
+### 方式二：从源码编译安装
+
 ```bash
 git clone https://github.com/AsIsacy/flickd.git && cd flickd
 make install    # 编译、打包无头 ~/Applications/Flickd.app、签名并注册 LaunchAgent 开机自启
